@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Cloud Playground - Hello World</title>
-    <meta name="description" content="A simple Google GenAI SDK Python hello world application deployed on Google Cloud Run.">
+    <title>Gemini Costco Scanner & AI Assistant</title>
+    <meta name="description" content="多模态识别 Costco 购买商品，基于 Google 搜索查找商品图片，并结合 ADK Agent 聊天助手。">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -13,180 +16,623 @@
         <div class="header-container">
             <div class="logo-group">
                 <div class="logo-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 2L14.85 9.15L22 12L14.85 14.85L12 22L9.15 14.85L2 12L9.15 9.15L12 2Z" />
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
                 </div>
-                <span class="logo-title">Gemini Cloud Playground</span>
+                <span class="logo-title">Costco Scanner <span class="logo-accent">AI Agent</span></span>
             </div>
             
-            {% if has_api_key %}
-            <div class="status-badge active" id="key-status-badge">
-                <span class="status-dot"></span>
-                <span>GEMINI_API_KEY 已配置</span>
+            <div class="header-status">
+                {% if has_api_key %}
+                <div class="status-badge active">
+                    <span class="status-dot"></span>
+                    <span>Gemini Connected</span>
+                </div>
+                {% else %}
+                <div class="status-badge missing">
+                    <span class="status-dot"></span>
+                    <span>API Key Missing</span>
+                </div>
+                {% endif %}
             </div>
-            {% else %}
-            <div class="status-badge missing" id="key-status-badge">
-                <span class="status-dot"></span>
-                <span>未配置 GEMINI_API_KEY</span>
-            </div>
-            {% endif %}
         </div>
     </header>
 
-    <main>
-        <!-- Playground Interface -->
-        <section class="playground-section">
-            <h1 class="section-title">Hello Gemini!</h1>
-            <p class="section-subtitle">通过 Google GenAI Python SDK 调用 Gemini 3.5 Flash 模型</p>
+    <main class="main-container">
+        <!-- Left Panel: Scanner Workspace -->
+        <section class="workspace-panel">
+            <div class="panel-card">
+                <h2 class="panel-title">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    商品識別スキャナー
+                </h2>
+                <p class="panel-subtitle">レシートまたは購入した商品の写真をアップロードして、多機能マルチモーダルAIで一括識別します。</p>
 
-            {% if not has_api_key %}
-            <div class="alert-box" id="api-key-warning">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-                </svg>
-                <div>
-                    <strong>提示：</strong> 服务器端未检测到 <code>GEMINI_API_KEY</code> 环境变量。您可以在下方临时输入 API Key 进行测试，或在部署到 Cloud Run 时将其配置为环境变量。
-                </div>
-            </div>
-
-            <div class="form-group" id="temp-key-group">
-                <label class="form-label" for="api-key-input">临时 API Key (仅前端保存)</label>
-                <div class="api-key-input-wrapper">
-                    <input type="password" id="api-key-input" class="input-field" placeholder="AIzaSy...">
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="form-group">
-                <label class="form-label" for="prompt-input">Prompt 提示词</label>
-                <textarea id="prompt-input" class="input-field" placeholder="向 Gemini 提问些什么..."></textarea>
-            </div>
-
-            <div class="suggestions">
-                <span class="suggestion-chip" onclick="setPrompt('你好，Gemini！请做一个自我介绍。')">👋 自我介绍</span>
-                <span class="suggestion-chip" onclick="setPrompt('用 Python 写一个最简单的 Web 服务器 Hello World 示例。')">🐍 Python Web Hello</span>
-                <span class="suggestion-chip" onclick="setPrompt('简述 Google Cloud Run 的三大优势。')">🚀 Cloud Run 优势</span>
-            </div>
-
-            <div class="prompt-actions">
-                <div></div>
-                <button id="generate-btn" class="btn btn-primary" onclick="submitPrompt()">
-                    <span class="spinner"></span>
-                    <span>发送给 Gemini</span>
-                </button>
-            </div>
-
-            <div class="output-container" id="output-container">
-                <div class="output-header">
-                    <div class="output-title">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #60a5fa;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                        <span>Gemini 响应</span>
+                <!-- Dropzone Area -->
+                <div class="drop-zone" id="drop-zone">
+                    <div class="drop-zone-content" id="drop-zone-prompt">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                        </div>
+                        <p class="upload-text">画像をドラッグ＆ドロップ、または<span>ファイルを選択</span></p>
+                        <p class="upload-tip">PNG, JPG, JPEG (最大 10MB)</p>
                     </div>
-                    <span class="output-badge" id="model-badge">gemini-3.5-flash</span>
+                    <input type="file" id="file-input" class="file-input" accept="image/*" style="display: none;">
+                    
+                    <!-- Preview Container -->
+                    <div class="preview-container" id="preview-container" style="display: none;">
+                        <img id="image-preview" src="#" alt="Upload Preview">
+                        <div class="scan-overlay" id="scan-overlay">
+                            <div class="scan-line"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="output-box" id="output-box">加载中...</div>
+
+                <!-- Action Button -->
+                <div class="scanner-actions">
+                    <button id="scan-btn" class="btn btn-primary" disabled>
+                        <span class="spinner"></span>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <span>画像を解析する</span>
+                    </button>
+                    <button id="reset-btn" class="btn btn-secondary" style="display: none;">
+                        <span>リセット</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scanned Products Grid -->
+            <div class="panel-card products-panel" id="products-panel" style="display: none;">
+                <h3 class="panel-card-title">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    識別された商品リスト
+                </h3>
+                <p class="panel-subtitle">商品を選択すると、Google検索から画像を取得して表示します。</p>
+                <div class="products-grid" id="products-grid">
+                    <!-- Cards will be injected here -->
+                </div>
+            </div>
+
+            <!-- Image Search Gallery -->
+            <div class="panel-card gallery-panel" id="gallery-panel" style="display: none;">
+                <div class="gallery-header">
+                    <h3 class="panel-card-title">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Google画像検索結果: <span id="gallery-search-query" class="query-highlight">商品名</span>
+                    </h3>
+                    <span class="search-method-badge" id="search-method-badge">Google Search</span>
+                </div>
+                
+                <!-- Skeleton Loader -->
+                <div class="skeleton-grid" id="gallery-skeleton" style="display: none;">
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="gallery-empty" id="gallery-empty" style="display: none;">
+                    <p>商品を選択してGoogle画像検索を実行してください。</p>
+                </div>
+
+                <!-- Gallery Grid -->
+                <div class="gallery-grid" id="gallery-grid">
+                    <!-- Images will be injected here -->
+                </div>
             </div>
         </section>
 
-        <!-- Sidebar Deploy / Setup instructions -->
-        <section class="info-section">
-            <div class="info-card">
-                <h3>🚀 Cloud Run 部署指南</h3>
-                <p>您已经准备好最简单的 Hello World 结构。可以通过以下步骤将此应用发布到 Google Cloud Run：</p>
-                <ul class="step-list">
-                    <li class="step-item">
-                        <div class="step-num">1</div>
-                        <div>
-                            <strong>使用 MCP 工具部署</strong>
-                            <p style="margin-top: 0.25rem;">在当前 Agent 对话中使用 <code>mcp_cloudrun_deploy_local_folder</code> 部署当前文件夹。</p>
+        <!-- Right Panel: AI Assistant Chat -->
+        <section class="assistant-panel">
+            <div class="panel-card chat-card">
+                <div class="chat-header">
+                    <div class="assistant-info">
+                        <div class="assistant-avatar">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
                         </div>
-                    </li>
-                    <li class="step-item">
-                        <div class="step-num">2</div>
                         <div>
-                            <strong>绑定 API Key 变量</strong>
-                            <p style="margin-top: 0.25rem;">部署时设置环境变量：<br><code>GEMINI_API_KEY=您的Key</code></p>
+                            <h3 class="chat-assistant-name">コストコ AI 買い物助手</h3>
+                            <span class="chat-assistant-status">Powered by Google ADK Agent</span>
                         </div>
-                    </li>
-                </ul>
-            </div>
+                    </div>
+                </div>
 
-            <div class="info-card">
-                <h3>🛠️ 本地运行</h3>
-                <p>若要在本地测试，可运行以下命令：</p>
-                <div class="code-block">
-                    <span class="code-comment"># 安装依赖</span><br>
-                    pip install -r requirements.txt<br><br>
-                    <span class="code-comment"># 设置环境变量</span><br>
-                    set GEMINI_API_KEY="您的API_KEY"<br><br>
-                    <span class="code-comment"># 启动服务</span><br>
-                    python app.py
+                <!-- Messages Log -->
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message message-bot">
+                        <div class="message-bubble">
+                            こんにちは！コストコAI買い物助手です。レシートや商品の写真を左側にスキャンしていただくと、購入した商品を自動で認識します。<br><br>
+                            スキャンした食材を使ったオリジナルレシピ、正しい冷凍・保存方法、他のスーパーとの価格比較などをサポートいたします。何でもお気軽にご質問ください！
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggestion Chips -->
+                <div class="chat-suggestions" id="chat-suggestions">
+                    <button class="chip" onclick="sendSuggestion('スキャンした商品を使った簡単レシピを教えて！')">🍽️ レシピ提案</button>
+                    <button class="chip" onclick="sendSuggestion('これらの商品の最適な保存方法は？')">❄️ 保存方法</button>
+                    <button class="chip" onclick="sendSuggestion('コストコで買うべきおすすめの関連商品を教えて')">🛒 おすすめ関連</button>
+                </div>
+
+                <!-- Message Input Form -->
+                <div class="chat-input-area">
+                    <textarea class="chat-input" id="chat-input" placeholder="質問を入力してください..." rows="1"></textarea>
+                    <button class="chat-send-btn" id="chat-send-btn" onclick="submitMessage()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </section>
     </main>
 
+    <!-- Image Lightbox Modal -->
+    <div class="modal" id="image-modal" onclick="closeModal()">
+        <span class="modal-close">&times;</span>
+        <img class="modal-content" id="modal-img" src="#">
+        <div class="modal-caption" id="modal-caption"></div>
+    </div>
+
     <footer>
-        <p>&copy; 2026 Gemini AI Hackathon. Powered by Google Cloud Run & Google GenAI SDK.</p>
+        <p>&copy; 2026 Gemini AI Hackathon. Enabled by Google GenAI SDK & ADK Agents.</p>
     </footer>
 
     <script>
-        function setPrompt(text) {
-            document.getElementById('prompt-input').value = text;
+        // State variables
+        let selectedFile = null;
+        let scannedProducts = [];
+        const sessionId = "session_" + Math.random().toString(36).substring(2, 11);
+
+        // Helper: fetch with automatic 3 retries (4 total attempts)
+        async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
+            try {
+                const response = await fetch(url, options);
+                // Retry on server errors (5xx) or rate limits (429)
+                if (!response.ok && retries > 0 && (response.status >= 500 || response.status === 429)) {
+                    console.warn(`Request to ${url} failed with status ${response.status}. Retrying in ${delay}ms... (${retries} retries remaining)`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(url, options, retries - 1, delay * 1.5);
+                }
+                return response;
+            } catch (error) {
+                if (retries > 0) {
+                    console.warn(`Request to ${url} failed with error: ${error.message}. Retrying in ${delay}ms... (${retries} retries remaining)`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(url, options, retries - 1, delay * 1.5);
+                }
+                throw error;
+            }
         }
 
-        async function submitPrompt() {
-            const promptInput = document.getElementById('prompt-input');
-            const prompt = promptInput.value.trim();
-            const generateBtn = document.getElementById('generate-btn');
-            const outputContainer = document.getElementById('output-container');
-            const outputBox = document.getElementById('output-box');
-            
-            if (!prompt) {
-                alert('请输入 Prompt 提示词！');
+        // DOM elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const dropZonePrompt = document.getElementById('drop-zone-prompt');
+        const scanBtn = document.getElementById('scan-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const scanOverlay = document.getElementById('scan-overlay');
+        
+        const productsPanel = document.getElementById('products-panel');
+        const productsGrid = document.getElementById('products-grid');
+        
+        const galleryPanel = document.getElementById('gallery-panel');
+        const galleryGrid = document.getElementById('gallery-grid');
+        const gallerySkeleton = document.getElementById('gallery-skeleton');
+        const galleryEmpty = document.getElementById('gallery-empty');
+        const gallerySearchQuery = document.getElementById('gallery-search-query');
+        const searchMethodBadge = document.getElementById('search-method-badge');
+
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const chatSendBtn = document.getElementById('chat-send-btn');
+
+        // Setup dropzone click
+        dropZone.addEventListener('click', () => {
+            if (!selectedFile) {
+                fileInput.click();
+            }
+        });
+
+        // Setup file input change
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Setup drag & drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        function handleFileSelect() {
+            const files = fileInput.files;
+            if (files.length > 0) {
+                selectedFile = files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    dropZonePrompt.style.display = 'none';
+                    previewContainer.style.display = 'flex';
+                    scanBtn.disabled = false;
+                    resetBtn.style.display = 'inline-flex';
+                };
+                reader.readAsDataURL(selectedFile);
+            }
+        }
+
+        // Reset Scanner
+        resetBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            imagePreview.src = '#';
+            dropZonePrompt.style.display = 'flex';
+            previewContainer.style.display = 'none';
+            scanBtn.disabled = true;
+            resetBtn.style.display = 'none';
+            scanOverlay.style.display = 'none';
+            productsPanel.style.display = 'none';
+            galleryPanel.style.display = 'none';
+            scannedProducts = [];
+            productsGrid.innerHTML = '';
+        });
+
+        // Trigger Scan / Multimodal Recognition
+        scanBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            scanBtn.classList.add('loading');
+            scanBtn.disabled = true;
+            scanOverlay.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+
+            try {
+                const response = await fetchWithRetry('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    scannedProducts = data.products || [];
+                    displayProducts(scannedProducts);
+                    
+                    // Add automatic bot message acknowledging scanned items
+                    if (scannedProducts.length > 0) {
+                        const itemsList = scannedProducts.map(p => `・${p.name} (ID: ${p.id})`).join('<br>');
+                        addBotMessage(`商品を認識しました！スキャンされた商品は以下の通りです：<br><br>${itemsList}<br><br>これらの食材の調理レシピや冷凍保存方法など、知りたいことがあればお尋ねください。`);
+                    } else {
+                        addBotMessage("画像から商品を認識できませんでした。別の画像を試すか、手動でチャットに入力してください。");
+                    }
+                } else {
+                    addBotMessage('【エラー】画像の解析に失敗しました: ' + (data.error || 'サーバーで一時的な問題が発生しました。'));
+                }
+            } catch (err) {
+                console.error(err);
+                addBotMessage('【ネットワークエラー】解析中に通信エラーが発生しました。ネットワークの状況を確認し、再度お試しください。');
+            } finally {
+                scanBtn.classList.remove('loading');
+                scanBtn.disabled = false;
+                scanOverlay.style.display = 'none';
+            }
+        });
+
+        // Display recognized products
+        function displayProducts(products) {
+            productsGrid.innerHTML = '';
+            if (products.length === 0) {
+                productsPanel.style.display = 'none';
                 return;
             }
 
-            let apiKey = '';
-            const keyInput = document.getElementById('api-key-input');
-            if (keyInput) {
-                apiKey = keyInput.value.trim();
-            }
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.onclick = () => selectProduct(product, card);
 
-            // UI feedback
-            generateBtn.classList.add('loading');
-            generateBtn.disabled = true;
-            outputContainer.classList.add('active');
-            outputBox.textContent = '思考中...';
-            outputBox.style.color = '#e5e7eb';
+                card.innerHTML = `
+                    <div class="product-badge">Costco Item</div>
+                    <div class="product-id">ID: ${product.id}</div>
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-search-btn">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        Google画像検索
+                    </div>
+                `;
+                productsGrid.appendChild(card);
+            });
+
+            productsPanel.style.display = 'block';
+            productsPanel.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Select Product and Trigger Google Image Search
+        async function selectProduct(product, cardElement) {
+            // Highlight selected card
+            document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+            cardElement.classList.add('selected');
+
+            // Show gallery panel & skeletons
+            galleryPanel.style.display = 'block';
+            gallerySkeleton.style.display = 'grid';
+            galleryGrid.style.display = 'none';
+            galleryEmpty.style.display = 'none';
+            galleryPanel.scrollIntoView({ behavior: 'smooth' });
+
+            const query = `コストコ ${product.id}`;
+            gallerySearchQuery.textContent = query;
 
             try {
-                const response = await fetch('/api/generate', {
+                const response = await fetchWithRetry('/api/search', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ prompt, apiKey })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
                 });
 
                 const data = await response.json();
-
-                if (response.ok && data.success) {
-                    outputBox.textContent = data.text;
-                    document.getElementById('model-badge').textContent = data.model || 'gemini-3.5-flash';
+                gallerySkeleton.style.display = 'none';
+                
+                if (response.ok && data.success && data.results.length > 0) {
+                    searchMethodBadge.textContent = data.method || 'Google Search';
+                    renderGallery(data.results);
                 } else {
-                    outputBox.textContent = data.error || '调用出错，请稍后重试。';
-                    outputBox.style.color = '#ef4444';
+                    galleryGrid.style.display = 'none';
+                    galleryEmpty.style.display = 'block';
+                    galleryEmpty.innerHTML = `<p class="no-results-text">「${product.name}」に関するGoogle画像検索結果が見つかりませんでした。</p>`;
                 }
             } catch (err) {
-                outputBox.textContent = '网络错误：无法连接到后端服务器。';
-                outputBox.style.color = '#ef4444';
-            } finally {
-                generateBtn.classList.remove('loading');
-                generateBtn.disabled = false;
+                console.error(err);
+                gallerySkeleton.style.display = 'none';
+                galleryEmpty.style.display = 'block';
+                galleryEmpty.innerHTML = '<p class="no-results-text">検索中にエラーが発生しました。</p>';
             }
         }
+
+        // Render Search Gallery
+        function renderGallery(results) {
+            galleryGrid.innerHTML = '';
+            
+            const isSingle = results.length === 1;
+            if (isSingle) {
+                galleryGrid.classList.add('single-mode');
+                galleryGrid.style.display = 'flex';
+            } else {
+                galleryGrid.classList.remove('single-mode');
+                galleryGrid.style.display = 'grid';
+            }
+
+            results.forEach(item => {
+                const card = document.createElement('div');
+                card.className = isSingle ? 'gallery-card single-card' : 'gallery-card';
+                
+                // Clicking image opens lightbox
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'gallery-img-container';
+                imgContainer.onclick = () => openLightbox(item.image_url || item.thumbnail_url, item.title, item.referer_url);
+                
+                const img = document.createElement('img');
+                img.src = item.thumbnail_url || item.image_url;
+                img.alt = item.title;
+                img.loading = 'lazy';
+                img.onerror = function() {
+                    this.src = '/static/placeholder.svg';
+                };
+                imgContainer.appendChild(img);
+
+                const info = document.createElement('div');
+                info.className = 'gallery-info';
+                
+                // Trim title
+                const maxTitleLen = isSingle ? 80 : 32;
+                const displayTitle = item.title.length > maxTitleLen ? item.title.substring(0, maxTitleLen) + '...' : item.title;
+                
+                info.innerHTML = `
+                    <div class="gallery-title" title="${item.title}">${displayTitle}</div>
+                    <div class="gallery-source">
+                        <span>${item.domain}</span>
+                        <a href="${item.referer_url}" target="_blank" class="gallery-link" onclick="event.stopPropagation()">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                            開く
+                        </a>
+                    </div>
+                `;
+                
+                card.appendChild(imgContainer);
+                card.appendChild(info);
+                galleryGrid.appendChild(card);
+            });
+        }
+
+        // Lightbox functions
+        function openLightbox(src, title, referer) {
+            const modal = document.getElementById('image-modal');
+            const modalImg = document.getElementById('modal-img');
+            const captionText = document.getElementById('modal-caption');
+            
+            modal.style.display = 'block';
+            modalImg.src = src;
+            captionText.innerHTML = `${title} <br> <a href="${referer}" target="_blank" style="color: #60a5fa; text-decoration: underline;">ソースサイトを見る</a>`;
+        }
+
+        function closeModal() {
+            document.getElementById('image-modal').style.display = 'none';
+        }
+
+        // Auto-resize textarea in chat
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Submit Chat Message
+        async function submitMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // Clear input
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+
+            // Add user bubble
+            addUserMessage(message);
+
+            // Add typing indicator
+            const typingDiv = showTypingIndicator();
+
+            try {
+                const response = await fetchWithRetry('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: sessionId,
+                        scannedItems: scannedProducts
+                    })
+                });
+
+                const data = await response.json();
+                hideTypingIndicator(typingDiv);
+
+                if (response.ok && data.success) {
+                    addBotMessage(data.response);
+                } else {
+                    addBotMessage('エラーが発生しました: ' + (data.error || 'アシスタントの呼び出しに失敗しました。'));
+                }
+            } catch (err) {
+                console.error(err);
+                hideTypingIndicator(typingDiv);
+                addBotMessage('ネットワークエラーにより、アシスタントと接続できませんでした。');
+            }
+        }
+
+        function sendSuggestion(text) {
+            chatInput.value = text;
+            submitMessage();
+        }
+
+        function addUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'message message-user';
+            div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div>`;
+            chatMessages.appendChild(div);
+            scrollChatToBottom();
+        }
+
+        function addBotMessage(html) {
+            const div = document.createElement('div');
+            div.className = 'message message-bot';
+            // Convert simple line breaks to HTML breaks and preserve basic paragraphs
+            const formatted = html.replace(/\n/g, '<br>');
+            div.innerHTML = `<div class="message-bubble">${formatted}</div>`;
+            chatMessages.appendChild(div);
+            scrollChatToBottom();
+        }
+
+        function showTypingIndicator() {
+            const div = document.createElement('div');
+            div.className = 'message message-bot typing-indicator';
+            div.innerHTML = `
+                <div class="message-bubble">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            `;
+            chatMessages.appendChild(div);
+            scrollChatToBottom();
+            return div;
+        }
+
+        function hideTypingIndicator(div) {
+            if (div && div.parentNode) {
+                div.parentNode.removeChild(div);
+            }
+        }
+
+        function scrollChatToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(string) {
+            const matchHtmlRegExp = /["'&<>]/;
+            const str = '' + string;
+            const match = matchHtmlRegExp.exec(str);
+
+            if (!match) {
+                return str;
+            }
+
+            let escape;
+            let html = '';
+            let index = 0;
+            let lastIndex = 0;
+
+            for (index = match.index; index < str.length; index++) {
+                switch (str.charCodeAt(index)) {
+                    case 34: // "
+                        escape = '&quot;';
+                        break;
+                    case 38: // &
+                        escape = '&amp;';
+                        break;
+                    case 39: // '
+                        escape = '&#39;';
+                        break;
+                    case 60: // <
+                        escape = '&lt;';
+                        break;
+                    case 62: // >
+                        escape = '&gt;';
+                        break;
+                    default:
+                        continue;
+                }
+
+                if (lastIndex !== index) {
+                    html += str.substring(lastIndex, index);
+                }
+
+                lastIndex = index + 1;
+                html += escape;
+            }
+
+            return lastIndex !== index
+                ? html + str.substring(lastIndex, index)
+                : html;
+        }
+
+        // Enter key submits message (Shift+Enter adds line break)
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitMessage();
+            }
+        });
     </script>
 </body>
 </html>
