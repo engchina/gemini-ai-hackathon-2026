@@ -424,7 +424,7 @@
     </div>
 
     <!-- ================= VIEW 2: LOADING SCANNING ================= -->
-    <div id="view-loading" class="fixed inset-0 pt-16 flex-col items-center justify-center bg-background z-40" style="display: none;">
+    <div id="view-loading" class="fixed inset-0 pt-16 flex flex-col items-center justify-center bg-background z-40" style="display: none;">
         <!-- Ambient Glow Background -->
         <div class="absolute inset-0 glow-overlay pointer-events-none"></div>
         <!-- Central Animation Container -->
@@ -569,7 +569,7 @@
     </div>
 
     <!-- ================= VIEW 4: CAMERA SCOUT ================= -->
-    <div id="view-camera" class="fixed inset-0 flex-col bg-inverse-surface z-50 text-on-primary-fixed overflow-hidden h-screen" style="display: none;">
+    <div id="view-camera" class="fixed inset-0 flex flex-col bg-inverse-surface z-50 text-on-primary-fixed overflow-hidden h-screen" style="display: none;">
         <!-- Live Video Element -->
         <video id="camera-stream" autoplay playsinline class="absolute inset-0 w-full h-full object-cover z-0"></video>
         <!-- Overlay to dim background and frame center -->
@@ -614,7 +614,7 @@
         </main>
 
         <!-- Footer Controls -->
-        <footer class="relative z-20 px-gutter pb-12 pt-4 flex items-center justify-between w-full">
+        <footer class="relative z-30 px-gutter pb-12 pt-4 flex items-center justify-between w-full">
             <!-- File Gallery Button -->
             <button onclick="triggerFileSelectFromCamera();" class="group flex flex-col items-center gap-2 focus:outline-none">
                 <div class="w-14 h-14 rounded-lg overflow-hidden border-2 border-white/20 hover:border-primary-fixed-dim transition-colors flex items-center justify-center bg-white/10 backdrop-blur-sm text-white">
@@ -627,9 +627,9 @@
                 <!-- Shutter Ring -->
                 <div class="w-20 h-20 rounded-full border-4 border-white/40 flex items-center justify-center">
                     <!-- Outer Halo -->
-                    <div class="absolute inset-0 w-full h-full rounded-full border border-white/10 animate-ping opacity-20"></div>
+                    <div class="absolute inset-0 w-full h-full rounded-full border border-white/10 animate-ping opacity-20 pointer-events-none"></div>
                     <!-- Inner Button -->
-                    <button class="shutter-inner w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform" id="camera-shutter">
+                    <button onclick="capturePhoto()" class="shutter-inner w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform" id="camera-shutter">
                         <div class="w-14 h-14 rounded-full border-2 border-primary/10"></div>
                     </button>
                 </div>
@@ -1006,8 +1006,23 @@
 
         // Offscreen Capture Canvas Shutter Method
         function capturePhoto() {
+            // Support Demo Mode bypass
+            if (appState.demoMode) {
+                console.log('[SlipScout PWA] Demo Mode: Simulating camera capture.');
+                stopCameraStream();
+                showView('loading');
+                startProgressBarSimulation();
+                
+                // Trigger simulated upload
+                uploadFile(null);
+                return;
+            }
+
             const videoEl = document.getElementById('camera-stream');
-            if (!videoEl || !mediaStream) return;
+            if (!videoEl || !mediaStream) {
+                alert("Camera stream is not active. If you are demonstrating, please make sure Demo Mode is toggled ON in the header first.");
+                return;
+            }
 
             const canvas = document.createElement('canvas');
             canvas.width = videoEl.videoWidth || 1280;
@@ -1033,13 +1048,7 @@
             }, 'image/jpeg', 0.9);
         }
 
-        // Bind tactile shutter button on startup
-        document.addEventListener('DOMContentLoaded', () => {
-            const shutterBtn = document.getElementById('camera-shutter');
-            if (shutterBtn) {
-                shutterBtn.addEventListener('click', capturePhoto);
-            }
-        });
+        // Tactile shutter is bound directly via inline HTML onclick attribute to prevent race conditions.
 
         // Unified AJAX Uploader
         function uploadFile(file) {
@@ -1453,6 +1462,18 @@
         }
 
         // AI Chat helper functions
+        function parseMarkdown(text) {
+            if (!text) return "";
+            let html = text;
+            // Bold **text**
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Bullets starting with *
+            html = html.replace(/^\*\s+(.*?)$/gm, '• $1');
+            // Newlines to <br>
+            html = html.replace(/\n/g, '<br>');
+            return html;
+        }
+
         function appendChatMessage(sender, text) {
             const container = document.getElementById('chat-messages-container');
             const msgRow = document.createElement('div');
@@ -1469,12 +1490,13 @@
                     </div>
                 `;
             } else {
+                const formatted = parseMarkdown(text);
                 msgRow.innerHTML = `
                     <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
                         <span class="material-symbols-outlined text-sm">smart_toy</span>
                     </div>
                     <div class="bg-white p-3 rounded-tr-lg rounded-br-lg rounded-bl-lg text-xs leading-relaxed shadow-sm max-w-[85%] text-on-surface">
-                        ${text}
+                        ${formatted}
                     </div>
                 `;
             }
@@ -1491,14 +1513,7 @@
             const typingIndicator = document.createElement('div');
             typingIndicator.id = 'typing-indicator';
             typingIndicator.className = "flex items-center gap-2.5";
-            typingIndicator.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm">smart_toy</span>
-                </div>
-                <div class="bg-white/70 p-3 rounded-lg text-xs italic text-on-surface-variant flex gap-1 items-center">
-                    AI is thinking deeply<span class="animate-bounce">.</span><span class="animate-bounce" style="animation-delay:0.2s">.</span><span class="animate-bounce" style="animation-delay:0.4s">.</span>
-                </div>
-            `;
+            typingIndicator.innerHTML = '<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0"><span class="material-symbols-outlined text-sm">smart_toy</span></div><div class="bg-white/70 p-3 rounded-lg text-xs italic text-on-surface-variant flex gap-1 items-center">AI is thinking deeply<span class="animate-bounce">.</span><span class="animate-bounce" style="animation-delay:0.2s">.</span><span class="animate-bounce" style="animation-delay:0.4s">.</span></div>';
             container.appendChild(typingIndicator);
             container.scrollTop = container.scrollHeight;
 
@@ -1511,16 +1526,23 @@
                     let response = "";
 
                     if (lowerText.includes('recipe') || lowerText.includes('cook') || lowerText.includes('eat') || lowerText.includes('food')) {
-                        response = `For your Costco haul, here is a delicious recipe suggestion!
+                        response = `For your Costco haul, here are some delicious recipe ideas using your fresh meats!
 
-**Honey Soy Glazed Char Siu Sliders**
-*   **Ingredients**: Cantonese-style Char Siu, sweet slider buns (or Costco dinner rolls), cucumber slices, green onions, and Kewpie mayo.
-*   **Instructions**:
-    1. Warm up the Char Siu slices in a pan until lightly seared and fragrant on both sides.
-    2. Slice your buns and spread a thin layer of Kewpie mayo.
-    3. Assemble with thick slices of seared Char Siu, fresh crunchy cucumbers, and sliced green onions.
+<div class="my-3 overflow-hidden rounded-xl shadow-md border border-outline-variant/30 bg-surface-container-lowest"><img src="/static/demo_recipe_guide.jpg" class="w-full h-auto object-cover max-h-56" alt="Recipe Guide" /><div class="p-3"><div class="font-bold text-xs text-primary mb-1">Costco Fresh Meat Recipe Guide</div><div class="text-on-surface-variant text-[11px] leading-relaxed">3 Japanese-style dishes using your Chicken Wing Mid-Joints, Australian Lamb & Sangenton Spare Ribs.</div></div></div>
 
-**Bonus Tip**: You can also portion out and freeze the 2.5kg of Chicken Wing Mid-Joints into smaller marinade bags for quick weekend baking or air-frying!`;
+**1. Chicken Wing Karaage (国産鶏手羽中の唐揚げ)**
+*   **Ingredients**: Chicken Wing Mid-Joints, soy sauce, grated ginger & garlic, potato starch, lemon wedges.
+*   **Instructions**: Marinate the wings in soy, ginger and garlic for 15 min, dust with potato starch, then deep-fry until golden and crispy. Serve with a squeeze of lemon and spicy mayo.
+
+**2. Lamb & Cilantro Japanese Stir-fry (パクチーとラム肉の和風炒め)**
+*   **Ingredients**: Australian Lamb slices, fresh cilantro (pakuchi), onion, garlic, soy sauce, toasted sesame.
+*   **Instructions**: Sear the lamb over high heat with sliced onion, season with soy and garlic, then toss in a generous handful of fresh cilantro right at the end. Finish with toasted sesame.
+
+**3. Sangenton Spare Ribs, Oven-Baked BBQ (三元豚スペアリブのオーブン焼き)**
+*   **Ingredients**: Sangenton Pork Spare Ribs, BBQ sauce, honey, rosemary, baby potatoes.
+*   **Instructions**: Coat the ribs in a honey-BBQ glaze, then roast at 200°C for about 40 min with rosemary and baby potatoes until caramelized and tender.
+
+**Bonus Tip**: Portion the 2.5kg of Chicken Wing Mid-Joints into smaller marinade bags and freeze them for quick weekend baking or air-frying!`;
                     } else if (lowerText.includes('recycling') || lowerText.includes('trash') || lowerText.includes('bin') || lowerText.includes('garbage')) {
                         response = `In Japan, trash disposal is highly structured! Based on your scanned items, here is your recycling roadmap:
 *   ♻️ **Resource Plastics (資源プラスチック)**: Wash and discard the meat plastic trays, clear wrap films, outer bulk packaging bags, and juice netting here.

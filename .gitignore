@@ -13,3 +13,9 @@ venv/
 # IDE files
 .vscode/
 .idea/
+
+# macOS
+.DS_Store
+
+# Local agent / MCP tooling config
+.agents/
