@@ -299,9 +299,8 @@
         </div>
         <div class="flex items-center gap-4">
             <!-- Demo Mode Toggle -->
-            <button onclick="toggleDemoMode()" id="demo-toggle-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-secondary-container text-secondary hover:opacity-90 active:scale-95 transition-all shadow-sm border border-outline-variant/30">
-                <span id="demo-toggle-icon" class="material-symbols-outlined text-[16px]">play_circle</span>
-                <span id="demo-toggle-text">Demo Mode: OFF</span>
+            <button onclick="toggleDemoMode()" id="demo-toggle-btn" class="w-10 h-10 rounded-full flex items-center justify-center bg-secondary-container text-secondary hover:opacity-90 active:scale-95 transition-all shadow-sm border border-outline-variant/30" title="Toggle Demo Mode">
+                <span id="demo-toggle-icon" class="material-symbols-outlined text-[20px]">play_circle</span>
             </button>
             <button class="text-primary hover:opacity-80 transition-opacity p-2">
                 <span class="material-symbols-outlined">language</span>
@@ -902,13 +901,13 @@
                 btn.classList.remove('bg-secondary-container', 'text-secondary');
                 btn.classList.add('bg-amber-100', 'text-amber-800', 'border-amber-400', 'animate-pulse');
                 icon.innerText = 'smart_toy';
-                text.innerText = 'Demo Mode: ON';
+                if (text) text.innerText = 'Demo Mode: ON';
                 console.log('[SlipScout PWA] Demo Mode enabled. Perfect offline mode activated!');
             } else {
                 btn.classList.remove('bg-amber-100', 'text-amber-800', 'border-amber-400', 'animate-pulse');
                 btn.classList.add('bg-secondary-container', 'text-secondary');
                 icon.innerText = 'play_circle';
-                text.innerText = 'Demo Mode: OFF';
+                if (text) text.innerText = 'Demo Mode: OFF';
                 console.log('[SlipScout PWA] Demo Mode disabled. Live Gemini API activated!');
             }
         }
@@ -1528,8 +1527,6 @@
                     if (lowerText.includes('recipe') || lowerText.includes('cook') || lowerText.includes('eat') || lowerText.includes('food')) {
                         response = `For your Costco haul, here are some delicious recipe ideas using your fresh meats!
 
-<div class="my-3 overflow-hidden rounded-xl shadow-md border border-outline-variant/30 bg-surface-container-lowest"><img src="/static/demo_recipe_guide.jpg" class="w-full h-auto object-cover max-h-56" alt="Recipe Guide" /><div class="p-3"><div class="font-bold text-xs text-primary mb-1">Costco Fresh Meat Recipe Guide</div><div class="text-on-surface-variant text-[11px] leading-relaxed">3 Japanese-style dishes using your Chicken Wing Mid-Joints, Australian Lamb & Sangenton Spare Ribs.</div></div></div>
-
 **1. Chicken Wing Karaage (国産鶏手羽中の唐揚げ)**
 *   **Ingredients**: Chicken Wing Mid-Joints, soy sauce, grated ginger & garlic, potato starch, lemon wedges.
 *   **Instructions**: Marinate the wings in soy, ginger and garlic for 15 min, dust with potato starch, then deep-fry until golden and crispy. Serve with a squeeze of lemon and spicy mayo.
@@ -1542,7 +1539,9 @@
 *   **Ingredients**: Sangenton Pork Spare Ribs, BBQ sauce, honey, rosemary, baby potatoes.
 *   **Instructions**: Coat the ribs in a honey-BBQ glaze, then roast at 200°C for about 40 min with rosemary and baby potatoes until caramelized and tender.
 
-**Bonus Tip**: Portion the 2.5kg of Chicken Wing Mid-Joints into smaller marinade bags and freeze them for quick weekend baking or air-frying!`;
+**Bonus Tip**: Portion the 2.5kg of Chicken Wing Mid-Joints into smaller marinade bags and freeze them for quick weekend baking or air-frying!
+
+<div class="my-3 overflow-hidden rounded-xl shadow-md border border-outline-variant/30 bg-surface-container-lowest"><img src="/static/demo_recipe_guide.jpg" class="w-full h-auto object-cover max-h-56" alt="Recipe Guide" /><div class="p-3"><div class="font-bold text-xs text-primary mb-1">Costco Fresh Meat Recipe Guide</div><div class="text-on-surface-variant text-[11px] leading-relaxed">3 Japanese-style dishes using your Chicken Wing Mid-Joints, Australian Lamb & Sangenton Spare Ribs.</div></div></div>`;
                     } else if (lowerText.includes('recycling') || lowerText.includes('trash') || lowerText.includes('bin') || lowerText.includes('garbage')) {
                         response = `In Japan, trash disposal is highly structured! Based on your scanned items, here is your recycling roadmap:
 *   ♻️ **Resource Plastics (資源プラスチック)**: Wash and discard the meat plastic trays, clear wrap films, outer bulk packaging bags, and juice netting here.
