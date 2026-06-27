@@ -298,6 +298,11 @@
             <span class="font-headline-md text-headline-md font-semibold text-primary">SlipScout</span>
         </div>
         <div class="flex items-center gap-4">
+            <!-- Demo Mode Toggle -->
+            <button onclick="toggleDemoMode()" id="demo-toggle-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-secondary-container text-secondary hover:opacity-90 active:scale-95 transition-all shadow-sm border border-outline-variant/30">
+                <span id="demo-toggle-icon" class="material-symbols-outlined text-[16px]">play_circle</span>
+                <span id="demo-toggle-text">Demo Mode: OFF</span>
+            </button>
             <button class="text-primary hover:opacity-80 transition-opacity p-2">
                 <span class="material-symbols-outlined">language</span>
             </button>
@@ -419,7 +424,7 @@
     </div>
 
     <!-- ================= VIEW 2: LOADING SCANNING ================= -->
-    <div id="view-loading" class="fixed inset-0 pt-16 flex-col items-center justify-center bg-background z-40" style="display: none;">
+    <div id="view-loading" class="fixed inset-0 pt-16 flex flex-col items-center justify-center bg-background z-40" style="display: none;">
         <!-- Ambient Glow Background -->
         <div class="absolute inset-0 glow-overlay pointer-events-none"></div>
         <!-- Central Animation Container -->
@@ -564,7 +569,7 @@
     </div>
 
     <!-- ================= VIEW 4: CAMERA SCOUT ================= -->
-    <div id="view-camera" class="fixed inset-0 flex-col bg-inverse-surface z-50 text-on-primary-fixed overflow-hidden h-screen" style="display: none;">
+    <div id="view-camera" class="fixed inset-0 flex flex-col bg-inverse-surface z-50 text-on-primary-fixed overflow-hidden h-screen" style="display: none;">
         <!-- Live Video Element -->
         <video id="camera-stream" autoplay playsinline class="absolute inset-0 w-full h-full object-cover z-0"></video>
         <!-- Overlay to dim background and frame center -->
@@ -609,7 +614,7 @@
         </main>
 
         <!-- Footer Controls -->
-        <footer class="relative z-20 px-gutter pb-12 pt-4 flex items-center justify-between w-full">
+        <footer class="relative z-30 px-gutter pb-12 pt-4 flex items-center justify-between w-full">
             <!-- File Gallery Button -->
             <button onclick="triggerFileSelectFromCamera();" class="group flex flex-col items-center gap-2 focus:outline-none">
                 <div class="w-14 h-14 rounded-lg overflow-hidden border-2 border-white/20 hover:border-primary-fixed-dim transition-colors flex items-center justify-center bg-white/10 backdrop-blur-sm text-white">
@@ -622,9 +627,9 @@
                 <!-- Shutter Ring -->
                 <div class="w-20 h-20 rounded-full border-4 border-white/40 flex items-center justify-center">
                     <!-- Outer Halo -->
-                    <div class="absolute inset-0 w-full h-full rounded-full border border-white/10 animate-ping opacity-20"></div>
+                    <div class="absolute inset-0 w-full h-full rounded-full border border-white/10 animate-ping opacity-20 pointer-events-none"></div>
                     <!-- Inner Button -->
-                    <button class="shutter-inner w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform" id="camera-shutter">
+                    <button onclick="capturePhoto()" class="shutter-inner w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform" id="camera-shutter">
                         <div class="w-14 h-14 rounded-full border-2 border-primary/10"></div>
                     </button>
                 </div>
@@ -698,8 +703,215 @@
             scannedProducts: [],
             selectedProduct: null,
             sessionId: "session_" + Math.random().toString(36).substring(2, 11),
-            chatHistory: []
+            chatHistory: [],
+            demoMode: false
         };
+
+        const DEMO_PRODUCTS = [
+            {
+                id: "96061",
+                raw_name: "※ 広東風チャーシュ",
+                name: "Cantonese Style Char Siu (広東風チャーシュ)",
+                category: "Grocery",
+                price: 2738,
+                image_url: "/static/demo_char_siu.webp",
+                demo_details: {
+                    description: "Rich and tender Cantonese-style sweet BBQ pork, pre-cooked and marinated in a traditional savory-sweet sauce. Perfect for quick meals or ramen toppings.",
+                    category: "Grocery / Meat",
+                    usage: {
+                        dosage: "Slice to desired thickness.",
+                        interval: "Store refrigerated; consume within 3 days of opening or freeze.",
+                        instructions: [
+                            "Slice into thick portions.",
+                            "Warm up in a microwave for 30-45 seconds or lightly sear in a pan.",
+                            "Serve over hot rice, ramen, or enjoy as a standalone main dish."
+                        ]
+                    },
+                    precautions: "Keep refrigerated. Wrap tightly after opening to prevent drying out.",
+                    recycling: [
+                        { item: "Outer Plastic Tray", bin: "Resource Plastics (資源プラスチック)", icon: "recycling" },
+                        { item: "Sealing Film", bin: "Resource Plastics (資源プラスチック)", icon: "layers" }
+                    ]
+                }
+            },
+            {
+                id: "12302",
+                raw_name: "※ マンダリン1.8KG",
+                name: "Mandarin Oranges 1.8KG (マンダリン1.8KG)",
+                category: "Grocery",
+                price: 638,
+                image_url: "/static/demo_mandarin.jpg",
+                demo_details: {
+                    description: "Sweet, juicy, and easy-to-peel Mandarin oranges imported in a bulk 1.8kg net bag. A refreshing, healthy citrus treat packed with Vitamin C.",
+                    category: "Grocery / Fruit",
+                    usage: {
+                        dosage: "Enjoy 1-2 fruits as a snack.",
+                        interval: "Keep in a cool, well-ventilated space or refrigerate.",
+                        instructions: [
+                            "Peel the skin by hand.",
+                            "Pull apart sections.",
+                            "Enjoy fresh, or use in salads and fruit desserts."
+                        ]
+                    },
+                    precautions: "Check periodically for spoiled fruit. Wash skin before peeling if desired.",
+                    recycling: [
+                        { item: "Outer Mesh Net", bin: "Resource Plastics (資源プラスチック)", icon: "recycling" },
+                        { item: "Paper Tag", bin: "Paper Recyclables (古紙類)", icon: "inventory_2" }
+                    ]
+                }
+            },
+            {
+                id: "90083",
+                raw_name: "※ 三元豚スペアリブLA",
+                name: "Sangenton Pork Spare Ribs LA Cut (三元豚スペアリブLA)",
+                category: "Grocery",
+                price: 3452,
+                image_url: "/static/demo_pork_ribs.jpg",
+                demo_details: {
+                    description: "Premium Japanese Sangenton pork spare ribs cut LA-style (across the bone) for easy grilling, braising, or roasting. High quality, tender meat.",
+                    category: "Grocery / Meat",
+                    usage: {
+                        dosage: "Use 2-3 bone portions per serving.",
+                        interval: "Keep refrigerated below 4°C or freeze immediately.",
+                        instructions: [
+                            "Season with salt, pepper, or BBQ marinade.",
+                            "Grill over medium heat or oven-bake at 180°C for 25-30 minutes until fully cooked.",
+                            "Let rest for 5 minutes before serving."
+                        ]
+                    },
+                    precautions: "Must be cooked thoroughly before consumption. Bone fragments may be present.",
+                    recycling: [
+                        { item: "Plastic Tray", bin: "Resource Plastics (資源プラスチック)", icon: "recycling" },
+                        { item: "Absorbent Pad", bin: "Combustible Waste (可燃ごみ)", icon: "layers" }
+                    ]
+                }
+            },
+            {
+                id: "99971",
+                raw_name: "※ オーストラリア ラム肩切落",
+                name: "Australian Lamb Shoulder Slices (オーストラリア ラム肩切落)",
+                category: "Grocery",
+                price: 3101,
+                image_url: "/static/demo_lamb.jpg",
+                demo_details: {
+                    description: "Thinly sliced premium Australian lamb shoulder. Perfect for Japanese Genghis Khan style BBQ, hot pot (shabu-shabu), or quick stir-fry.",
+                    category: "Grocery / Meat",
+                    usage: {
+                        dosage: "Prepare 150g-200g per person.",
+                        interval: "Consume within 2 days or freeze immediately.",
+                        instructions: [
+                            "Heat a skillet or hot plate.",
+                            "Cook thin slices quickly (1-2 minutes) until no longer pink.",
+                            "Dip in savory Genghis Khan soy-based sauce and serve with vegetables."
+                        ]
+                    },
+                    precautions: "Cook thoroughly. Lamb has a unique aroma; pair with garlic, onions, or rosemary if desired.",
+                    recycling: [
+                        { item: "Plastic Wrap Film", bin: "Resource Plastics (資源プラスチック)", icon: "layers" },
+                        { item: "Base Tray", bin: "Resource Plastics (資源プラスチック)", icon: "recycling" }
+                    ]
+                }
+            },
+            {
+                id: "88892",
+                raw_name: "※ コクサントリテバナカ2.5KG",
+                name: "Japanese Chicken Wing Mid-Joints 2.5KG (コクサントリテバナカ2.5KG)",
+                category: "Grocery",
+                price: 2178,
+                image_url: "/static/demo_chicken_wings.jpg",
+                demo_details: {
+                    description: "Bulk 2.5kg pack of fresh, high-quality Japanese domestic chicken wing mid-joints (Teba Naka). Juicy, tender, and rich in collagen.",
+                    category: "Grocery / Meat",
+                    usage: {
+                        dosage: "Portion out into smaller bags for meal prep.",
+                        interval: "Keep refrigerated below 2°C or freeze.",
+                        instructions: [
+                            "Deep-fry or bake at 200°C for 15-20 minutes until skin is golden brown.",
+                            "Toss in sweet soy glaze with sesame seeds (Nagoya style) or salt-pepper.",
+                            "Serve hot."
+                        ]
+                    },
+                    precautions: "Wash hands and surfaces thoroughly after handling raw poultry. Cook to internal temp of 75°C.",
+                    recycling: [
+                        { item: "Large Outer Plastic Bag", bin: "Resource Plastics (資源プラスチック)", icon: "recycling" },
+                        { item: "Internal Vacuum Packs", bin: "Resource Plastics (資源プラスチック)", icon: "layers" }
+                    ]
+                }
+            },
+            {
+                id: "515685",
+                raw_name: "クリネックスティシュー 10PC",
+                name: "Kleenex Tissues 10-Pack (クリネックスティシュー 10PC)",
+                category: "Home",
+                price: 780,
+                image_url: "/static/demo_kleenex.webp",
+                demo_details: {
+                    description: "High-quality Kleenex facial tissues. Soft, strong, and highly absorbent. Standard 10-box bulk family pack.",
+                    category: "Home / Household",
+                    usage: {
+                        dosage: "Use 1-2 sheets as needed.",
+                        interval: "Store in a dry place.",
+                        instructions: [
+                            "Open the perforated oval slit on the top of the box.",
+                            "Pull out a tissue sheet.",
+                            "Dispose of used tissues in combustible waste."
+                        ]
+                    },
+                    precautions: "Do not flush down the toilet as facial tissues do not dissolve easily in water.",
+                    recycling: [
+                        { item: "Paper Box Container", bin: "Paper Recyclables (古紙類)", icon: "inventory_2" },
+                        { item: "Slit Plastic Film", bin: "Resource Plastics (資源プラスチック)", icon: "layers" }
+                    ]
+                }
+            },
+            {
+                id: "69001",
+                raw_name: "キッチンワイプ240CT",
+                name: "Kitchen Wipes 240 Count (キッチンワイプ240CT)",
+                category: "Home",
+                price: 1968,
+                image_url: "/static/demo_kitchen_wipes.webp",
+                demo_details: {
+                    description: "Tough, durable, and highly absorbent multi-purpose kitchen wipes. Heavy-duty textured cleaning wipes in a bulk 240-count dispenser box.",
+                    category: "Home / Household",
+                    usage: {
+                        dosage: "Use 1 sheet per cleaning task.",
+                        interval: "Pull out a fresh sheet whenever cleaning surfaces or grease.",
+                        instructions: [
+                            "Pull a wipe from the dispenser box.",
+                            "Wipe kitchen countertops, grease spills, or stove surfaces.",
+                            "Discard in general waste after use."
+                        ]
+                    },
+                    precautions: "Non-flushable. Do not use on body or face; formulated for hard surface cleaning.",
+                    recycling: [
+                        { item: "Cardboard Dispenser Box", bin: "Paper Recyclables (古紙類)", icon: "inventory_2" },
+                        { item: "Inner Dispenser Slit Film", bin: "Resource Plastics (資源プラスチック)", icon: "layers" }
+                    ]
+                }
+            }
+        ];
+
+        function toggleDemoMode() {
+            appState.demoMode = !appState.demoMode;
+            const btn = document.getElementById('demo-toggle-btn');
+            const icon = document.getElementById('demo-toggle-icon');
+            const text = document.getElementById('demo-toggle-text');
+            
+            if (appState.demoMode) {
+                btn.classList.remove('bg-secondary-container', 'text-secondary');
+                btn.classList.add('bg-amber-100', 'text-amber-800', 'border-amber-400', 'animate-pulse');
+                icon.innerText = 'smart_toy';
+                text.innerText = 'Demo Mode: ON';
+                console.log('[SlipScout PWA] Demo Mode enabled. Perfect offline mode activated!');
+            } else {
+                btn.classList.remove('bg-amber-100', 'text-amber-800', 'border-amber-400', 'animate-pulse');
+                btn.classList.add('bg-secondary-container', 'text-secondary');
+                icon.innerText = 'play_circle';
+                text.innerText = 'Demo Mode: OFF';
+                console.log('[SlipScout PWA] Demo Mode disabled. Live Gemini API activated!');
+            }
+        }
 
         // Camera WebRTC Variables
         let mediaStream = null;
@@ -794,8 +1006,23 @@
 
         // Offscreen Capture Canvas Shutter Method
         function capturePhoto() {
+            // Support Demo Mode bypass
+            if (appState.demoMode) {
+                console.log('[SlipScout PWA] Demo Mode: Simulating camera capture.');
+                stopCameraStream();
+                showView('loading');
+                startProgressBarSimulation();
+                
+                // Trigger simulated upload
+                uploadFile(null);
+                return;
+            }
+
             const videoEl = document.getElementById('camera-stream');
-            if (!videoEl || !mediaStream) return;
+            if (!videoEl || !mediaStream) {
+                alert("Camera stream is not active. If you are demonstrating, please make sure Demo Mode is toggled ON in the header first.");
+                return;
+            }
 
             const canvas = document.createElement('canvas');
             canvas.width = videoEl.videoWidth || 1280;
@@ -821,16 +1048,34 @@
             }, 'image/jpeg', 0.9);
         }
 
-        // Bind tactile shutter button on startup
-        document.addEventListener('DOMContentLoaded', () => {
-            const shutterBtn = document.getElementById('camera-shutter');
-            if (shutterBtn) {
-                shutterBtn.addEventListener('click', capturePhoto);
-            }
-        });
+        // Tactile shutter is bound directly via inline HTML onclick attribute to prevent race conditions.
 
         // Unified AJAX Uploader
         function uploadFile(file) {
+            if (appState.demoMode) {
+                console.log('[SlipScout PWA] Demo Mode: Intercepting upload. Simulating scanning...');
+                
+                setTimeout(() => {
+                    appState.scannedProducts = DEMO_PRODUCTS;
+                    
+                    const now = new Date();
+                    document.getElementById('decoded-date').innerText = now.toLocaleString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false 
+                    });
+                    
+                    completeProgressBar(() => {
+                        showView('result');
+                        renderResultList();
+                    });
+                }, 3500); // 3.5 seconds of simulated high-tech scan progress bar!
+                return;
+            }
+
             const formData = new FormData();
             formData.append('image', file);
 
@@ -921,7 +1166,12 @@
             listContainer.innerHTML = '';
 
             const isDrug = appState.scannedProducts.some(p => p.category === 'Drugstore' || p.name.includes('药') || p.name.includes('止痛') || p.name.includes('Pain'));
-            document.getElementById('decoded-shop-title').innerText = isDrug ? "Decoded: Welcia Drugstore" : "Decoded: Life Supermarket";
+            
+            if (appState.demoMode) {
+                document.getElementById('decoded-shop-title').innerText = "Decoded: Costco Wholesale";
+            } else {
+                document.getElementById('decoded-shop-title').innerText = isDrug ? "Decoded: Welcia Drugstore" : "Decoded: Life Supermarket";
+            }
 
             appState.scannedProducts.forEach(product => {
                 const card = document.createElement('div');
@@ -950,8 +1200,18 @@
                 card.addEventListener('click', () => openProductDrawer(product));
                 listContainer.appendChild(card);
 
-                // lazy load image
-                fetchProductImage(product.name, imgId);
+                // lazy load image or use hardcoded demo image
+                if (appState.demoMode && product.image_url) {
+                    const imgEl = document.getElementById(imgId);
+                    const placeholderEl = document.getElementById(`${imgId}-placeholder`);
+                    if (imgEl && placeholderEl) {
+                        imgEl.src = product.image_url;
+                        imgEl.classList.remove('hidden');
+                        placeholderEl.classList.add('hidden');
+                    }
+                } else {
+                    fetchProductImage(product.name, imgId);
+                }
             });
         }
 
@@ -980,6 +1240,17 @@
             const heroPlaceholder = document.getElementById('drawer-hero-placeholder');
             heroImg.classList.add('hidden');
             heroPlaceholder.classList.remove('hidden');
+
+            // Use hardcoded demo details immediately if in Demo Mode
+            if (appState.demoMode && product.demo_details) {
+                renderDrawerDetails(product.demo_details, product);
+                if (product.image_url) {
+                    heroImg.src = product.image_url;
+                    heroImg.classList.remove('hidden');
+                    heroPlaceholder.classList.add('hidden');
+                }
+                return;
+            }
 
             // Fetch dynamic details
             fetch('/api/product-details', {
@@ -1011,7 +1282,7 @@
                 if (data.success && data.results && data.results.length > 0) {
                     heroImg.src = data.results[0].image_url;
                     heroImg.classList.remove('hidden');
-                    heroPlaceholder.classList.remove('hidden');
+                    heroPlaceholder.classList.add('hidden');
                 }
             });
         }
@@ -1191,6 +1462,18 @@
         }
 
         // AI Chat helper functions
+        function parseMarkdown(text) {
+            if (!text) return "";
+            let html = text;
+            // Bold **text**
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Bullets starting with *
+            html = html.replace(/^\*\s+(.*?)$/gm, '• $1');
+            // Newlines to <br>
+            html = html.replace(/\n/g, '<br>');
+            return html;
+        }
+
         function appendChatMessage(sender, text) {
             const container = document.getElementById('chat-messages-container');
             const msgRow = document.createElement('div');
@@ -1207,12 +1490,13 @@
                     </div>
                 `;
             } else {
+                const formatted = parseMarkdown(text);
                 msgRow.innerHTML = `
                     <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
                         <span class="material-symbols-outlined text-sm">smart_toy</span>
                     </div>
                     <div class="bg-white p-3 rounded-tr-lg rounded-br-lg rounded-bl-lg text-xs leading-relaxed shadow-sm max-w-[85%] text-on-surface">
-                        ${text}
+                        ${formatted}
                     </div>
                 `;
             }
@@ -1229,16 +1513,56 @@
             const typingIndicator = document.createElement('div');
             typingIndicator.id = 'typing-indicator';
             typingIndicator.className = "flex items-center gap-2.5";
-            typingIndicator.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm">smart_toy</span>
-                </div>
-                <div class="bg-white/70 p-3 rounded-lg text-xs italic text-on-surface-variant flex gap-1 items-center">
-                    AI is thinking deeply<span class="animate-bounce">.</span><span class="animate-bounce" style="animation-delay:0.2s">.</span><span class="animate-bounce" style="animation-delay:0.4s">.</span>
-                </div>
-            `;
+            typingIndicator.innerHTML = '<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0"><span class="material-symbols-outlined text-sm">smart_toy</span></div><div class="bg-white/70 p-3 rounded-lg text-xs italic text-on-surface-variant flex gap-1 items-center">AI is thinking deeply<span class="animate-bounce">.</span><span class="animate-bounce" style="animation-delay:0.2s">.</span><span class="animate-bounce" style="animation-delay:0.4s">.</span></div>';
             container.appendChild(typingIndicator);
             container.scrollTop = container.scrollHeight;
+
+            if (appState.demoMode) {
+                setTimeout(() => {
+                    const indicator = document.getElementById('typing-indicator');
+                    if (indicator) indicator.remove();
+
+                    const lowerText = text.toLowerCase();
+                    let response = "";
+
+                    if (lowerText.includes('recipe') || lowerText.includes('cook') || lowerText.includes('eat') || lowerText.includes('food')) {
+                        response = `For your Costco haul, here are some delicious recipe ideas using your fresh meats!
+
+<div class="my-3 overflow-hidden rounded-xl shadow-md border border-outline-variant/30 bg-surface-container-lowest"><img src="/static/demo_recipe_guide.jpg" class="w-full h-auto object-cover max-h-56" alt="Recipe Guide" /><div class="p-3"><div class="font-bold text-xs text-primary mb-1">Costco Fresh Meat Recipe Guide</div><div class="text-on-surface-variant text-[11px] leading-relaxed">3 Japanese-style dishes using your Chicken Wing Mid-Joints, Australian Lamb & Sangenton Spare Ribs.</div></div></div>
+
+**1. Chicken Wing Karaage (国産鶏手羽中の唐揚げ)**
+*   **Ingredients**: Chicken Wing Mid-Joints, soy sauce, grated ginger & garlic, potato starch, lemon wedges.
+*   **Instructions**: Marinate the wings in soy, ginger and garlic for 15 min, dust with potato starch, then deep-fry until golden and crispy. Serve with a squeeze of lemon and spicy mayo.
+
+**2. Lamb & Cilantro Japanese Stir-fry (パクチーとラム肉の和風炒め)**
+*   **Ingredients**: Australian Lamb slices, fresh cilantro (pakuchi), onion, garlic, soy sauce, toasted sesame.
+*   **Instructions**: Sear the lamb over high heat with sliced onion, season with soy and garlic, then toss in a generous handful of fresh cilantro right at the end. Finish with toasted sesame.
+
+**3. Sangenton Spare Ribs, Oven-Baked BBQ (三元豚スペアリブのオーブン焼き)**
+*   **Ingredients**: Sangenton Pork Spare Ribs, BBQ sauce, honey, rosemary, baby potatoes.
+*   **Instructions**: Coat the ribs in a honey-BBQ glaze, then roast at 200°C for about 40 min with rosemary and baby potatoes until caramelized and tender.
+
+**Bonus Tip**: Portion the 2.5kg of Chicken Wing Mid-Joints into smaller marinade bags and freeze them for quick weekend baking or air-frying!`;
+                    } else if (lowerText.includes('recycling') || lowerText.includes('trash') || lowerText.includes('bin') || lowerText.includes('garbage')) {
+                        response = `In Japan, trash disposal is highly structured! Based on your scanned items, here is your recycling roadmap:
+*   ♻️ **Resource Plastics (資源プラスチック)**: Wash and discard the meat plastic trays, clear wrap films, outer bulk packaging bags, and juice netting here.
+*   🔥 **Combustible Waste (可燃ごみ)**: Throw away used Kleenex tissues, used heavy-duty kitchen wipes, and the absorbent padding from raw meats here.
+*   📦 **Paper Recyclables (古紙類)**: Flatten the Kleenex cardboard boxes, tie them up neatly, and discard them on paper collection days.`;
+                    } else {
+                        response = `Hello! I am your SlipScout local life assistant. 
+
+I see your Costco receipt contains 7 premium items (Char Siu, Mandarins, Sangenton Spare Ribs, Australian Lamb, Chicken Wing Mid-Joints, Kleenex, and Kitchen Wipes).
+
+How can I help you today? You can ask me for:
+- 🍳 Custom **cooking recipes** or storage guides for your raw meats.
+- ♻️ Clear **Japanese recycling & trash bin guidelines** for the packaging materials.
+- 💡 Detailed **usage/safety guidelines** for household goods like Kleenex or kitchen wipes.`;
+                    }
+
+                    appendChatMessage('bot', response);
+                }, 1500); // 1.5s simulated typing delay
+                return;
+            }
 
             // call AI chat API
             fetch('/api/chat', {
